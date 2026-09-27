@@ -34,24 +34,20 @@ func SaveVault(v *Vault, password []byte, path string) error {
 }
 
 func LoadVault(password []byte, path string) (*Vault, error) {
-	// reading the file
 	data, err := os.ReadFile(path)
-	if len(data) < saltSize+nonceSize {
-		return nil, fmt.Errorf("file is too small to be a valid .v3il encrypted file")
-	}
 	if err != nil {
-		// if the error says that file doesn't exist, then create a new vault
 		if os.IsNotExist(err) {
-			// if file doesn't exist make a new file with a new salt
 			newSalt, err := GenerateSalt()
 			if err != nil {
 				return nil, err
 			}
 			return &Vault{entries: make(map[string]Entry), salt: newSalt}, nil
-
 		}
-		// else show the error message
 		return nil, err
+	}
+
+	if len(data) < saltSize+nonceSize {
+		return nil, fmt.Errorf("file is too small to be a valid .v3il encrypted file")
 	}
 
 	salt := data[:saltSize]
@@ -71,4 +67,23 @@ func LoadVault(password []byte, path string) (*Vault, error) {
 	}
 
 	return &Vault{entries: entries, salt: salt}, nil
+}
+
+func saveVaultWithKey(v *Vault, key []byte, path string) error {
+	data, err := json.Marshal(v.entries)
+	if err != nil {
+		return err
+	}
+
+	ciphertext, nonce, err := Encrypt(key, data)
+	if err != nil {
+		return err
+	}
+
+	var out []byte
+	out = append(out, v.salt...)
+	out = append(out, nonce...)
+	out = append(out, ciphertext...)
+
+	return os.WriteFile(path, out, 0600)
 }

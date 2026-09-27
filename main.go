@@ -11,6 +11,8 @@ import (
 	"golang.org/x/term"
 )
 
+// VaultPath creates the ~/home/.v3il/vault.
+// It returns the path of the generated vault
 func VaultPath() (string, error) {
 
 	home, err := os.UserHomeDir()
@@ -110,6 +112,7 @@ func cmdAdd(args []string) error {
 	}
 	return nil
 }
+
 func cmdGet(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("usage: v3il get <name>")
@@ -249,8 +252,11 @@ func cmdUpdate(args []string) error {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("usage: v3il <add|get|list|delete|update> [args]")
-		os.Exit(1)
+		if err := runTUI(); err != nil {
+			fmt.Println("error:", err)
+			os.Exit(1)
+		}
+		return
 	}
 
 	command := os.Args[1]
